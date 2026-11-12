@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aliens: Space Defense</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Arial Black', sans-serif; user-select: none; touch-action: none; color: white; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.4); }
+        #ui { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; font-size: 18px; z-index: 10; pointer-events: none; display: none; }
+        h1 { font-size: 60px; text-shadow: 0 0 30px #0f0; margin-bottom: 20px; text-align: center; color: #0f0; letter-spacing: 5px; }
+        button { padding: 15px 40px; font-size: 22px; border-radius: 50px; cursor: pointer; font-weight: bold; border: 4px solid #fff; transition: 0.2s; background: #222; color: #fff; margin: 8px; z-index: 110; }
+        button:disabled { opacity: 0.5; }
+        #playBtn { background: #00ff00; color: #000; font-size: 35px; padding: 20px 70px; border-color: #000; }
+        .lvl-card { background: rgba(34, 34, 34, 0.8); border: 2px solid #555; padding: 12px; margin: 5px; width: 75%; border-radius: 15px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .lvl-card.active { border-color: #0f0; box-shadow: 0 0 15px #0f0; background: rgba(0, 50, 0, 0.8); }
+        .lvl-card.locked { opacity: 0.4; }
+        #joyContainer { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px solid #fff; border-radius: 50%; z-index: 50; display: none; }
+        #joyStick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #fff; border-radius: 50%; }
+        #fireButton { position: absolute; bottom: 40px; right: 40px; width: 110px; height: 110px; background: #ff0000; border: 5px solid #fff; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 50; }
+        input { width: 70%; max-width: 320px; padding: 14px; margin: 6px; font-size: 18px; border-radius: 14px; border: 3px solid #555; background: #111; color: #fff; font-family: Arial, sans-serif; text-align: center; }
+        .msg { color: #ff6b6b; font-size: 14px; min-height: 18px; text-align: center; font-family: Arial, sans-serif; }
+        .small { padding: 8px 18px; font-size: 14px; border-width: 2px; }
+        #shopScreen { justify-content: flex-start; overflow-y: auto; background: rgba(0,0,10,0.92); padding-bottom: 30px; box-sizing: border-box; }
+        .tabs { display: flex; flex-wrap: wrap; justify-content: center; }
+        .tabs button { padding: 10px 20px; font-size: 16px; border-width: 3px; }
+        .tabs button.on { background: #0f0; color: #000; }
+        .shop-card { display: flex; align-items: center; gap: 14px; width: 86%; max-width: 420px; background: rgba(34,34,34,0.85); border: 2px solid #555; border-radius: 15px; padding: 10px 14px; margin: 6px; box-sizing: border-box; }
+        .shop-card .info { flex: 1; font-size: 15px; }
+        .shop-card .info small { display: block; color: #aaa; font-family: Arial, sans-serif; font-size: 12px; margin-top: 3px; }
+        .shop-card button { padding: 10px 16px; font-size: 14px; margin: 0; border-width: 3px; white-space: nowrap; }
+        .shop-card.sel { border-color: #0f0; box-shadow: 0 0 12px #0f0; }
+        .buy { background: #ffd23f; color: #000; border-color: #000; }
+        /* support chat */
+        #supportScreen { background: rgba(0,0,10,0.95); }
+        #chatBox { width: 90%; max-width: 420px; height: 42%; overflow-y: auto; background: #111; border: 2px solid #555; border-radius: 12px; padding: 8px; box-sizing: border-box; font-family: Arial, sans-serif; font-size: 14px; display: flex; flex-direction: column; }
+        .m { margin: 4px 0; padding: 7px 11px; border-radius: 10px; max-width: 80%; word-wrap: break-word; }
+        .m.u { background: #0a7a3a; align-self: flex-end; }
+        .m.a { background: #444; align-self: flex-start; }
+        /* agreement */
+        #agreeScreen a { color: #4cc9ff; font-family: Arial, sans-serif; font-size: 18px; text-decoration: underline; cursor: pointer; z-index: 110; }
+    </style>
+</head>
+<body onclick="initAudio()">
+
+<div id="ui">
+    <div>❤️ HP: <span id="hp">45</span></div>
+    <div style="color: #0ff;">⏱️ ARRIVAL: <span id="timer">00:50</span></div>
+    <div style="color:#ffd23f;">🪙 COINS: <span id="score">0</span></div>
+</div>
+
+<div id="agreeScreen" class="screen" style="background: rgba(0,0,0,0.9); display: none;">
+    <h1>ALIENS</h1>
+    <p style="font-family: Arial, sans-serif; font-size: 18px; text-align: center; padding: 0 20px; margin: 0 0 12px;">Before you continue, please read and accept the rules.</p>
+    <a id="rulesLink">AILENS — GAME RULES &amp; POLICIES</a>
+    <div style="margin-top: 20px;">
+        <button id="agreeBtn" style="background:#00ff00; color:#000;">I AGREE</button>
+        <button id="disagreeBtn" style="background:#aa3333;">I DISAGREE</button>
+    </div>
+    <button id="agreeBack" class="small">BACK</button>
+    <p id="agreeMsg" class="msg"></p>
+</div>
+
+<div id="authScreen" class="screen" style="background: rgba(0,0,0,0.85); display: none;">
+    <h1>ALIENS</h1>
+    <input id="auName" placeholder="Username" maxlength="16" autocomplete="username" autocapitalize="off">
+    <input id="auPass" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password">
+    <div>
+        <button id="loginBtn" style="background:#0088ff;">LOGIN</button>
+        <button id="regBtn" style="background:#00ff00; color:#000;">CREATE ACCOUNT</button>
+    </div>
+    <button id="authBack" class="small">BACK</button>
+    <p id="authMsg" class="msg"></p>
+</div>
+
+<div id="mainMenu" class="screen" style="display: none;">
+    <h1>ALIENS</h1>
+    <p id="acctInfo" style="color:#ffd23f; margin: 0 0 10px; font-size: 16px;"></p>
+    <button id="playBtn">PLAY</button>
+    <button id="levelsBtn" style="background: #0088ff;">LEVELS</button>
+    <button id="shopBtn" style="background: #ffd23f; color:#000; border-color:#000;">🛒 SHOP</button>
+    <button id="supportBtn" class="small" style="background:#aa3333;">⚠️ REPORT PAYMENT PROBLEM</button>
+    <button id="logoutBtn" class="small">LOGOUT</button>
+    <p id="currentLvlInfo" style="color: #0f0; margin-top: 15px; font-size: 14px;">Selected: Level 0 (50 Sec)</p>
+</div>
+
+<div id="levelsMenu" class="screen" style="display: none;">
+    <h1 style="font-size: 40px;">SELECT MISSION</h1>
+    <div class="lvl-card" id="lc0" onclick="selectLevel(0)"><h3>LEVEL 0</h3><p>Time: 50 Sec | Tutorial</p></div>
+    <div class="lvl-card" id="lc1" onclick="selectLevel(1)"><h3>LEVEL 1</h3><p>Time: 3 Min | Easy</p></div>
+    <div class="lvl-card" id="lc2" onclick="selectLevel(2)"><h3>LEVEL 2</h3><p>Time: 6 Min | Medium</p></div>
+    <div class="lvl-card" id="lc3" onclick="selectLevel(3)"><h3>LEVEL 3</h3><p>Time: 10 Min | Hard</p></div>
+    <p id="lvlMsg" class="msg"></p>
+    <button onclick="backToMain()">BACK</button>
+</div>
+
+<div id="shopScreen" class="screen" style="display: none;">
+    <h1 style="font-size: 36px; margin: 15px 0 5px;">SHOP</h1>
+    <p style="color:#ffd23f; margin: 0 0 8px;">🪙 <span id="shopCoins">0</span> COINS</p>
+    <div class="tabs">
+        <button id="tab_skins" onclick="setTab('skins')">SPACESHIPS</button>
+        <button id="tab_hp" onclick="setTab('hp')">HEALTH</button>
+        <button id="tab_coins" onclick="setTab('coins')">COINS</button>
+    </div>
+    <p id="shopMsg" class="msg"></p>
+    <div id="shopBody" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+    <button onclick="closeShop()">BACK</button>
+</div>
+
+<div id="supportScreen" class="screen" style="display: none;">
+    <h1 style="font-size: 30px; margin: 0 0 8px;">PAYMENT SUPPORT</h1>
+    <p style="font-family: Arial, sans-serif; font-size: 14px; color: #ffd23f; text-align: center; margin: 0 0 10px; padding: 0 20px;">Please write politely, in English.<br>Describe the problem with your payment.</p>
+    <div id="chatBox"></div>
+    <div style="display:flex; width:90%; max-width:420px; align-items:center; justify-content:center;">
+        <input id="chatIn" placeholder="Your message..." maxlength="500" style="flex:1; width:auto; margin:6px 0;">
+        <button id="chatSend" class="small buy" style="margin:6px 0 6px 8px;">SEND</button>
+    </div>
+    <p id="chatMsg" class="msg"></p>
+    <button onclick="closeSupport()">BACK</button>
+</div>
+
+<div id="gameOver" class="screen" style="display: none; background: rgba(100,0,0,0.8);">
+    <h1 style="color: #fff; text-shadow: none;">ROCKET DESTROYED!</h1>
+    <p id="deadCoins" style="color:#ffd23f; font-size:22px;"></p>
+    <button onclick="resetToMenu()">GO TO MAIN PAGE</button>
+</div>
+
+<div id="victoryScreen" class="screen" style="display: none; background: rgba(0,100,0,0.8);">
+    <h1 style="color: #fff; text-shadow: none;">MISSION SUCCESS!</h1>
+    <p id="winCoins" style="color:#ffd23f; font-size:22px;"></p>
+    <button onclick="resetToMenu()">GO TO MAIN PAGE</button>
+</div>
+
+<div id="joyContainer"><div id="joyStick"></div></div>
+<div id="fireButton">FIRE</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+// ================= CONFIG =================
+const SUPABASE_URL = "https://xgefttyfdvrsgcrwouyh.supabase.co";
+const ANON_KEY = "sb_publishable_bYcwD5aozAlpz5ckd9Zjtw_fIkBmYEN";
+const API_URL = SUPABASE_URL + "/functions/v1/game";
+const GUEST_MSG = "You cannot buy anything until you create an account!";
+const HP_TIERS = [
+    { hp: 55,  price: "$1.99" },
+    { hp: 75,  price: "$3.99" },
+    { hp: 85,  price: "$4.99" },
+    { hp: 150, price: "$9.99" }
+];
+const SKINS = {
+    spaceship:  { name: "SPACESHIP",   price: 0,     body: "#ffffff", fin: "#ff0000", line: null },
+    spaceship2: { name: "SPACESHIP 2", price: 800,   body: "#f4fbff", fin: "#4cc9ff", line: "#4cc9ff" },
+    spaceship3: { name: "SPACESHIP 3", price: 2000,  body: "#0b0b10", fin: "#ffd23f", line: "#ffd23f" },
+    spaceship4: { name: "SPACESHIP 4", price: 7500,  body: "#0b0b10", fin: "#b86bff", line: "#b86bff" },
+    spaceship5: { name: "SPACESHIP 5", price: 15000, body: "#0b0b10", fin: "#4cc9ff", line: "#4cc9ff", palette: ["#4cc9ff", "#ffd23f", "#b86bff"] }
+};
+const fmt = n => Number(n).toLocaleString("en-US");
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+
+function playSnd(freq, type, duration, vol, rampFreq) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    if (rampFreq) osc.frequency.exponentialRampToValueAtTime(rampFreq, audioCtx.currentTime + duration);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
+}
+
+// ================= RULES & AGREEMENT =================
+const RULES_HTML = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AILENS — GAME RULES &amp; POLICIES</title>
+<style>
+body { margin:0; background:#05050a; color:#eee; font-family: Arial, sans-serif; line-height:1.6; }
+.wrap { max-width:720px; margin:0 auto; padding:24px 18px 60px; }
+h1 { color:#0f0; font-size:24px; text-align:center; letter-spacing:1px; }
+h2 { color:#ffd23f; font-size:18px; margin:24px 0 4px; }
+p { margin:0; }
+</style></head><body><div class="wrap">
+<h1>AILENS — GAME RULES &amp; POLICIES</h1>
+
+<h2>1. General Rules</h2>
+<p>Ailens is a single-player game. All players must follow the game rules and respect the game environment.</p>
+
+<h2>2. Fair Play</h2>
+<p>Cheating, exploiting bugs, modifying game data, using unauthorized tools and manipulating scores or rewards are prohibited.</p>
+
+<h2>3. Account Safety</h2>
+<p>Players must keep their passwords and session tokens private. Accessing another player's account is prohibited.</p>
+
+<h2>4. Gameplay</h2>
+<p>Players can complete levels, defeat enemies, earn coins and unlock available spaceships. Game progress must follow the intended game mechanics.</p>
+
+<h2>5. Virtual Currency</h2>
+<p>In-game coins are virtual currency. They cannot be exchanged for real money or transferred outside the game.</p>
+
+<h2>6. Purchases</h2>
+<p>All real-money payments for Ailens are processed through Whop. Ailens does not directly collect or process bank card details.</p>
+
+<h2>7. Payment Information</h2>
+<p>Ailens does not request or collect players' bank card numbers or banking credentials. Payment details are entered through Whop's official checkout. Players should never send payment information through the game or support chat.</p>
+
+<h2>8. Refund Policy</h2>
+<p>Refund requests are reviewed in accordance with applicable consumer protection laws and Whop's payment procedures.</p>
+<p style="margin-top:10px;">Customers may contact the seller regarding refund requests, billing issues, duplicate payments, or problems accessing purchased products.</p>
+<p style="margin-top:10px;">Approved refunds will be processed through Whop to the original payment method where possible.</p>
+<p style="margin-top:10px;">Nothing in this policy limits any mandatory consumer rights provided by applicable law.</p>
+
+<h2>9. Privacy</h2>
+<p>Ailens may store account information, game progress and support messages to operate its features. Ailens does not request players' personal email addresses or phone numbers for ordinary gameplay.</p>
+
+<h2>10. Support</h2>
+<p>The support chat is for game-related assistance. Respectful communication is required. Spam, threats and abusive messages are prohibited.</p>
+
+<h2>11. Technical Security</h2>
+<p>Attempts to hack, damage, overload or disrupt the game or its server are prohibited.</p>
+
+<h2>12. Rule Enforcement</h2>
+<p>Violations may result in account restrictions or loss of access to game features.</p>
+
+<h2>13. Updates</h2>
+<p>Game rules and features may change as Ailens develops.</p>
+</div></body></html>`;
+
+function showAgreement() {
+    document.getElementById("authScreen").style.display = "none";
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("agreeMsg").innerText = "";
+    document.getElementById("agreeScreen").style.display = "flex";
+}
+
+document.getElementById("rulesLink").onclick = () => {
+    const url = URL.createObjectURL(new Blob([RULES_HTML], { type: "text/html" }));
+    window.open(url, "_blank");
+};
+document.getElementById("agreeBtn").onclick = () => {
+    initAudio();
+    document.getElementById("agreeScreen").style.display = "none";
+    document.getElementById("authScreen").style.display = "flex";
+};
+document.getElementById("disagreeBtn").onclick = () => {
+    initAudio();
+    const m = document.getElementById("agreeMsg");
+    m.style.color = "#ff6b6b";
+    m.innerText = "You must agree to the rules to log in or create an account.";
+    playSnd(120, 'triangle', 0.15, 0.3, 40);
+};
+function backFromAuth() {
+    playSnd(200, 'sine', 0.1, 0.1, 50);
+    document.getElementById("agreeScreen").style.display = "none";
+    document.getElementById("authScreen").style.display = "none";
+    document.getElementById("authMsg").innerText = "";
+    document.getElementById("mainMenu").style.display = "flex";
+    refreshAcctUI();
+}
+document.getElementById("agreeBack").onclick = backFromAuth;
+document.getElementById("authBack").onclick = backFromAuth;
+
+// ================= ACCOUNT / SERVER =================
+let acct = { name: "", coins: 0, skins: ["spaceship"], skin: "spaceship", hp: 45, link: "", cleared: -1 };
+
+// ---------- Guest mode (local save, no account needed) ----------
+let isGuest = true, guestLevel = 0;
+const GUEST_KEY = "ailens_guest";
+
+function loadGuest() {
+    let g = null;
+    try { g = JSON.parse(localStorage.getItem(GUEST_KEY) || "null"); } catch (e) {}
+    const d = { name: "GUEST", coins: 0, skins: ["spaceship"], skin: "spaceship", hp: 45, link: "", cleared: -1 };
+    if (g && typeof g === "object") {
+        d.coins = Math.max(0, Math.floor(Number(g.coins)) || 0);
+        if (Array.isArray(g.skins)) d.skins = g.skins.filter(s => SKINS[s]);
+        if (d.skins.indexOf("spaceship") < 0) d.skins.unshift("spaceship");
+        d.skin = (SKINS[g.skin] && d.skins.indexOf(g.skin) >= 0) ? g.skin : "spaceship";
+        d.cleared = Math.max(-1, Math.min(3, Math.floor(Number(g.cleared)))) ;
+        if (isNaN(d.cleared)) d.cleared = -1;
+    }
+    return d;
+}
+function saveGuest() {
+    try { localStorage.setItem(GUEST_KEY, JSON.stringify({ coins: acct.coins, skins: acct.skins, skin: acct.skin, cleared: acct.cleared })); } catch (e) {}
+}
+function guestApi(action, data) {
+    data = data || {};
+    if (action === "state") {
+        // nothing to do
+    } else if (action === "start") {
+        guestLevel = Number(data.level) || 0;
+        if (guestLevel > 0) guestLevel = 0;
+    } else if (action === "end") {
+        acct.coins += Math.max(0, Math.floor(Number(data.coins)) || 0);
+        if (data.won && guestLevel > acct.cleared) acct.cleared = guestLevel;
+    } else if (action === "equip") {
+        if (acct.skins.indexOf(data.skin) < 0) throw new Error("Skin not owned");
+        acct.skin = data.skin;
+    } else if (action === "buy") {
+        throw new Error(GUEST_MSG);
+    } else if (action === "checkout") {
+        throw new Error(GUEST_MSG);
+    } else {
+        throw new Error("Create an account to use this feature.");
+    }
+    saveGuest(); refreshAcctUI();
+    return { state: acct };
+}
+
+function enterGuest() {
+    isGuest = true;
+    acct = loadGuest();
+    showMenuAfterAuth();
+}
+
+async function api(action, data) {
+    if (isGuest && action !== "login" && action !== "register") return guestApi(action, data);
+    const r = await fetch(API_URL, {
+        method: "POST", headers: { "Content-Type": "application/json", "apikey": ANON_KEY },
+        body: JSON.stringify(Object.assign({ action: action, token: localStorage.getItem("ailens_token") || "" }, data || {}))
+    });
+    const j = await r.json();
+    if (!r.ok || j.error) throw new Error(j.error || "Server error");
+    if (j.token) localStorage.setItem("ailens_token", j.token);
+    if (j.state) { acct = j.state; refreshAcctUI(); }
+    return j;
+}
+
+function refreshAcctUI() {
+    document.getElementById("acctInfo").innerText = (isGuest ? "GUEST (saved on this device)" : "PILOT: " + acct.name) + "  |  🪙 " + fmt(acct.coins) + "  |  ❤️ " + acct.hp + " HP";
+    document.getElementById("supportBtn").style.display = isGuest ? "none" : "";
+    document.getElementById("logoutBtn").innerText = isGuest ? "LOGIN / CREATE ACCOUNT" : "LOGOUT";
+    if (gameState === "MAIN_MENU") { player.hp = acct.hp; document.getElementById("hp").innerText = player.hp; }
+    updateLevels();
+}
+
+function showMenuAfterAuth() {
+    document.getElementById("agreeScreen").style.display = "none";
+    document.getElementById("authScreen").style.display = "none";
+    document.getElementById("mainMenu").style.display = "flex";
+    refreshAcctUI();
+}
+
+async function doAuth(action) {
+    const msg = document.getElementById("authMsg");
+    msg.style.color = "#ffd23f"; msg.innerText = "Connecting...";
+    try {
+        await api(action, { name: document.getElementById("auName").value.trim(), pass: document.getElementById("auPass").value, agreed: true });
+        isGuest = false;
+        msg.innerText = ""; showMenuAfterAuth();
+    } catch (e) { msg.style.color = "#ff6b6b"; msg.innerText = e.message; }
+}
+document.getElementById("loginBtn").onclick = () => { initAudio(); doAuth("login"); };
+document.getElementById("regBtn").onclick = () => { initAudio(); doAuth("register"); };
+document.getElementById("logoutBtn").onclick = () => {
+    if (isGuest) {
+        document.getElementById("auPass").value = "";
+        showAgreement();
+        return;
+    }
+    localStorage.removeItem("ailens_token");
+    document.getElementById("auPass").value = "";
+    enterGuest();
+};
+
+// ================= ROCKET DRAWING =================
+function drawRocket(c, id, fH) {
+    const s = SKINS[id] || SKINS.spaceship;
+    let line = s.line, fin = s.fin;
+    if (s.palette) {
+        const n = s.palette.length, k = Math.floor(frame / 25);
+        fin = s.palette[k % n];
+        line = s.palette[(k + 1) % n];
+    }
+    if (fH) {
+        let g = c.createLinearGradient(0, 35, 0, 35 + fH); g.addColorStop(0, "yellow"); g.addColorStop(1, "transparent");
+        c.fillStyle = g; c.beginPath(); c.moveTo(-12, 35); c.lineTo(0, 35 + fH); c.lineTo(12, 35); c.fill();
+    }
+    c.fillStyle = s.body; c.beginPath(); c.moveTo(0,-60); c.lineTo(25,35); c.lineTo(-25,35); c.fill();
+    c.fillStyle = fin; c.fillRect(-30, 10, 12, 35); c.fillRect(18, 10, 12, 35);
+    if (line) {
+        c.save();
+        c.shadowColor = line; c.shadowBlur = 12; c.strokeStyle = line; c.lineWidth = 3; c.lineJoin = "round";
+        c.beginPath(); c.moveTo(0,-60); c.lineTo(25,35); c.lineTo(-25,35); c.closePath(); c.stroke();
+        c.beginPath(); c.moveTo(0,-45); c.lineTo(0,35); c.moveTo(-15,12); c.lineTo(15,12); c.moveTo(-20,24); c.lineTo(20,24); c.stroke();
+        c.strokeRect(-30, 10, 12, 35); c.strokeRect(18, 10, 12, 35);
+        c.restore();
+    }
+    c.fillStyle = "cyan"; c.beginPath(); c.arc(0, -10, 8, 0, 7); c.fill();
+}
+
+// ================= GAME STATE =================
+let gameState = "MAIN_MENU";
+let selectedLevel = 0;
+let defaultTime = 50;
+let timeLeft = 50;
+let spawnRate = 0.03;
+let stationY = canvas.height - 110;
+let planetY = canvas.height - 80;
+let goalPlanet = { y: -700, radius: 400, active: false };
+let player = { x: canvas.width / 2, y: canvas.height - 150, hp: 45, score: 0 };
+let moveX = 0, isHoldingFire = false, fireCooldown = 0;
+let enemies = [], bullets = [], enemyBullets = [], stars = [];
+let runCoins = 0, killCount = 0, runActive = false;
+let evSec = 0, cargoStation = null, popups = [], frame = 0;
+
+for(let i=0; i<100; i++) stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*3+1});
+
+function updateHud() { document.getElementById("score").innerText = fmt(acct.coins + runCoins); }
+function addPopup(x, y, txt, col) { popups.push({ x: x, y: y, t: 70, txt: txt, col: col }); }
+function coinSnd() { playSnd(900, 'sine', 0.12, 0.15, 1500); setTimeout(() => playSnd(1300, 'sine', 0.15, 0.15, 1900), 90); }
+
+function endRun(won) {
+    if (!runActive) return;
+    runActive = false;
+    const earned = runCoins;
+    api("end", { coins: earned, won: !!won }).then(() => { runCoins = 0; updateHud(); }).catch(() => {
+        document.getElementById("deadCoins").innerText = "Sync failed - coins not saved";
+    });
+}
+
+// ================= LEVELS (locked until previous cleared; guests only Level 0) =================
+function isLocked(n) {
+    if (isGuest) return n > 0;
+    return n > 0 && acct.cleared < n - 1;
+}
+
+function updateLevels() {
+    for (let n = 0; n <= 3; n++) {
+        const el = document.getElementById("lc" + n);
+        el.classList.toggle("locked", isLocked(n));
+        el.querySelector("h3").innerText = "LEVEL " + n + (isLocked(n) ? " 🔒" : (acct.cleared >= n ? " ✅" : ""));
+    }
+    if (isLocked(selectedLevel)) selectLevel(0, true);
+}
+
+function selectLevel(num, silent) {
+    const lm = document.getElementById("lvlMsg");
+    if (isLocked(num)) {
+        lm.innerText = isGuest ? "Create an account to unlock this level!" : "Complete Level " + (num - 1) + " first!";
+        playSnd(120, 'triangle', 0.15, 0.3, 40);
+        return;
+    }
+    lm.innerText = "";
+    if (!silent) playSnd(440, 'sine', 0.1, 0.1, 880);
+    selectedLevel = num;
+    if(num === 0) { defaultTime = 50; spawnRate = 0.025; }
+    if(num === 1) { defaultTime = 180; spawnRate = 0.035; }
+    if(num === 2) { defaultTime = 360; spawnRate = 0.05; }
+    if(num === 3) { defaultTime = 600; spawnRate = 0.07; }
+    timeLeft = defaultTime;
+    document.getElementById("currentLvlInfo").innerText = `Selected: Level ${num} (${num === 0 ? '50 Sec' : (defaultTime/60) + ' Min'})`;
+    document.querySelectorAll('.lvl-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('lc'+num).classList.add('active');
+}
+
+function resetToMenu() {
+    endRun(false);
+    gameState = "MAIN_MENU";
+    player.hp = acct.hp; player.score = 0;
+    player.x = canvas.width / 2;
+    timeLeft = defaultTime;
+    enemies = []; bullets = []; enemyBullets = [];
+    cargoStation = null; popups = []; evSec = 0; killCount = 0;
+    goalPlanet.active = false; goalPlanet.y = -700;
+    stationY = canvas.height - 110; planetY = canvas.height - 80;
+
+    document.getElementById("hp").innerText = player.hp;
+    updateHud();
+    document.getElementById("gameOver").style.display = "none";
+    document.getElementById("victoryScreen").style.display = "none";
+    document.getElementById("ui").style.display = "none";
+    document.getElementById("joyContainer").style.display = "none";
+    document.getElementById("fireButton").style.display = "none";
+    document.getElementById("mainMenu").style.display = "flex";
+    refreshAcctUI();
+    api("state").catch(() => {});
+    playSnd(200, 'sine', 0.2, 0.1, 50);
+}
+
+function backToMain() {
+    playSnd(200, 'sine', 0.1, 0.1, 50);
+    document.getElementById("levelsMenu").style.display = "none";
+    document.getElementById("mainMenu").style.display = "flex";
+}
+
+document.getElementById("levelsBtn").onclick = () => {
+    playSnd(600, 'sine', 0.1, 0.1, 300);
+    document.getElementById("lvlMsg").innerText = "";
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("levelsMenu").style.display = "flex";
+};
+
+document.getElementById("playBtn").onclick = () => {
+    initAudio();
+    if (isLocked(selectedLevel)) { selectLevel(0, true); }
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("ui").style.display = "flex";
+    document.getElementById("joyContainer").style.display = "block";
+    document.getElementById("fireButton").style.display = "flex";
+
+    player.hp = acct.hp; document.getElementById("hp").innerText = player.hp;
+    runCoins = 0; killCount = 0; evSec = 0; cargoStation = null; popups = []; runActive = true;
+    document.getElementById("deadCoins").innerText = ""; document.getElementById("winCoins").innerText = "";
+    updateHud();
+    api("start", { level: selectedLevel }).catch(() => {});
+
+    let m = Math.floor(timeLeft/60); let s = timeLeft%60;
+    document.getElementById("timer").innerText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+    gameState = "LAUNCHING";
+    playSnd(50, 'sawtooth', 2.0, 0.4, 400);
+};
+
+// ================= SHOP =================
+let shopTab = "skins", shopTimer = null;
+function setShopMsg(t, ok) { const m = document.getElementById("shopMsg"); m.style.color = ok ? "#0f0" : "#ff6b6b"; m.innerText = t || ""; }
+document.getElementById("shopBtn").onclick = () => {
+    playSnd(600, 'sine', 0.1, 0.1, 900);
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("shopScreen").style.display = "flex";
+    setShopMsg("");
+    renderShop();
+    api("state").then(renderShop).catch(() => {});
+    shopTimer = setInterval(() => { api("state").then(renderShop).catch(() => {}); }, 8000);
+};
+function closeShop() {
+    clearInterval(shopTimer);
+    playSnd(200, 'sine', 0.1, 0.1, 50);
+    document.getElementById("shopScreen").style.display = "none";
+    document.getElementById("mainMenu").style.display = "flex";
+}
+function setTab(t) { shopTab = t; setShopMsg(""); renderShop(); }
+
+function card(inner, sel) { const d = document.createElement("div"); d.className = "shop-card" + (sel ? " sel" : ""); d.innerHTML = inner; return d; }
+
+function guestBlocked() {
+    setShopMsg(GUEST_MSG);
+    playSnd(120, 'triangle', 0.15, 0.3, 40);
+}
+
+async function startCheckout(item, okMsg) {
+    playSnd(600, 'sine', 0.1, 0.1, 900);
+    if (isGuest) { guestBlocked(); return; }
+    const w = window.open("", "_blank");
+    try {
+        const j = await api("checkout", { item: item });
+        if (w) w.location = j.url; else location.href = j.url;
+        setShopMsg(okMsg, true);
+    } catch (e) {
+        if (w) w.close();
+        setShopMsg(e.message);
+    }
+}
+
+function renderShop() {
+    const box = document.getElementById("shopBody"); box.innerHTML = "";
+    document.getElementById("shopCoins").innerText = fmt(acct.coins);
+    ["skins", "hp", "coins"].forEach(t => document.getElementById("tab_" + t).classList.toggle("on", t === shopTab));
+
+    if (shopTab === "skins") {
+        Object.keys(SKINS).forEach(id => {
+            const s = SKINS[id], owned = acct.skins.indexOf(id) >= 0, equipped = acct.skin === id;
+            const d = card('<canvas width="70" height="110" style="position:static;background:#05050a;border-radius:10px"></canvas><div class="info">' + s.name + '<small>' + (owned ? "Owned forever" : "Spaceship skin") + '</small></div><button class="' + (owned ? "" : "buy") + '"></button>', equipped);
+            const cv = d.querySelector("canvas").getContext("2d"); cv.translate(35, 60); cv.scale(0.8, 0.8); drawRocket(cv, id, 0);
+            const b = d.querySelector("button");
+            b.innerText = equipped ? "EQUIPPED" : (owned ? "EQUIP" : (isGuest ? "🔒 " : "") + fmt(s.price) + " 🪙 BUY");
+            b.onclick = async () => {
+                if (!owned && isGuest) { guestBlocked(); return; }
+                try { await api(owned ? "equip" : "buy", { skin: id }); coinSnd(); setShopMsg(owned ? "Equipped!" : "Purchased!", true); renderShop(); }
+                catch (e) { setShopMsg(e.message); playSnd(120, 'triangle', 0.15, 0.3, 40); }
+            };
+            box.appendChild(d);
+        });
+    }
+
+    if (shopTab === "hp") {
+        box.appendChild(card('<div class="info">YOUR MAX HEALTH<small>Permanent upgrade, paid with real money via Whop</small></div><div style="font-size:22px">❤️ ' + acct.hp + '</div>', false));
+        HP_TIERS.forEach(t => {
+            const owned = acct.hp >= t.hp;
+            const d = card('<div style="font-size:26px">❤️</div><div class="info">' + t.hp + ' HP<small>' + t.price + ' - forever</small></div><button class="buy"></button>', false);
+            const b = d.querySelector("button");
+            b.innerText = owned ? "OWNED" : (isGuest ? "🔒 " : "") + "BUY " + t.price;
+            b.disabled = owned;
+            b.onclick = () => startCheckout("hp" + t.hp, "After paying, come back - your HP updates automatically.");
+            box.appendChild(d);
+        });
+    }
+
+    if (shopTab === "coins") {
+        [["15,000 COINS", "$7.99", "coins15000"], ["23,000 COINS", "$11.97", "coins23000"]].forEach(p => {
+            const d = card('<div style="font-size:26px">🪙</div><div class="info">' + p[0] + '<small>' + p[1] + ' - real money via Whop</small></div><button class="buy">' + (isGuest ? "🔒 " : "") + 'BUY ' + p[1] + '</button>', false);
+            d.querySelector("button").onclick = () => startCheckout(p[2], "After paying, come back - coins arrive automatically.");
+            box.appendChild(d);
+        });
+    }
+}
+
+// ================= SUPPORT CHAT =================
+let chatTimer = null, chatCount = -1;
+document.getElementById("supportBtn").onclick = () => {
+    playSnd(600, 'sine', 0.1, 0.1, 900);
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("supportScreen").style.display = "flex";
+    document.getElementById("chatMsg").innerText = "";
+    chatCount = -1;
+    loadChat();
+    chatTimer = setInterval(loadChat, 5000);
+};
+function closeSupport() {
+    clearInterval(chatTimer);
+    playSnd(200, 'sine', 0.1, 0.1, 50);
+    document.getElementById("supportScreen").style.display = "none";
+    document.getElementById("mainMenu").style.display = "flex";
+}
+async function loadChat() {
+    try {
+        const j = await api("msg_list");
+        if (j.msgs.length === chatCount) return;
+        chatCount = j.msgs.length;
+        const box = document.getElementById("chatBox"); box.innerHTML = "";
+        j.msgs.forEach(m => {
+            const d = document.createElement("div");
+            d.className = "m " + (m.sender === "admin" ? "a" : "u");
+            d.textContent = (m.sender === "admin" ? "Support: " : "") + m.text;
+            box.appendChild(d);
+        });
+        box.scrollTop = box.scrollHeight;
+    } catch (e) {}
+}
+async function sendChat() {
+    const inp = document.getElementById("chatIn"), t = inp.value.trim();
+    if (!t) return;
+    const cm = document.getElementById("chatMsg");
+    try {
+        await api("msg_send", { text: t });
+        inp.value = ""; cm.innerText = ""; chatCount = -1; loadChat();
+    } catch (e) { cm.style.color = "#ff6b6b"; cm.innerText = e.message; }
+}
+document.getElementById("chatSend").onclick = sendChat;
+document.getElementById("chatIn").addEventListener("keydown", e => { if (e.key === "Enter") sendChat(); });
+
+// ================= CONTROLS =================
+const fireBtn = document.getElementById("fireButton");
+fireBtn.addEventListener("touchstart", (e) => { e.preventDefault(); isHoldingFire = true; });
+window.addEventListener("touchend", () => { isHoldingFire = false; });
+
+window.addEventListener("touchmove", (e) => {
+    if (gameState !== "GAME") return;
+    for (let t of e.touches) {
+        if (t.clientX < 250) {
+            let rect = document.getElementById("joyContainer").getBoundingClientRect();
+            moveX = Math.min(Math.max((t.clientX - (rect.left + 60))/50, -1), 1);
+            document.getElementById("joyStick").style.transform = `translateX(${moveX*40}px)`;
+        }
+    }
+}, {passive: false});
+
+setInterval(() => {
+    if (gameState === "GAME" && timeLeft > 0) {
+        timeLeft--;
+        let m = Math.floor(timeLeft/60); let s = timeLeft%60;
+        document.getElementById("timer").innerText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        if (timeLeft === 0) goalPlanet.active = true;
+        evSec++;
+        if (evSec >= 20) {
+            evSec = 0;
+            if (!cargoStation && !goalPlanet.active && timeLeft > 8) {
+                cargoStation = { x: 130 + Math.random() * Math.max(10, canvas.width - 260), y: -90, state: "approach", t: 0 };
+                addPopup(canvas.width/2, 110, "CARGO STATION INCOMING!", "#cfcfcf");
+                playSnd(500, 'triangle', 0.4, 0.15, 800);
+            }
+        }
+    }
+}, 1000);
+
+// ================= UPDATE =================
+function updateCargoStation() {
+    const st = cargoStation; if (!st) return;
+    if (st.state === "approach") {
+        st.y += 2.2;
+        if (st.y > canvas.height + 120) { cargoStation = null; return; }
+        if (st.y + 38 >= player.y - 60 && st.y - 38 <= player.y + 35 && Math.abs(st.x - player.x) < 105) {
+            st.state = "dock"; st.t = 0;
+            playSnd(300, 'square', 0.2, 0.15, 700);
+        }
+    } else if (st.state === "dock") {
+        st.t++;
+        st.x += (player.x - st.x) * 0.15;
+        st.y += ((player.y - 118) - st.y) * 0.15;
+        if (st.t === 25) playSnd(180, 'square', 0.15, 0.2, 120);
+        if (st.t === 90) {
+            runCoins += 4; updateHud(); coinSnd();
+            addPopup(player.x, player.y - 100, "+4 CARGO COINS", "#ffd23f");
+            st.state = "leave"; st.t = 0;
+        }
+    } else {
+        st.y -= 4; if (st.y < -160) cargoStation = null;
+    }
+}
+
+function update() {
+    frame++;
+    stars.forEach(s => {
+        let speed = (gameState === "GAME" || gameState === "LAUNCHING") ? s.s * 3 : s.s;
+        s.y += speed;
+        if(s.y > canvas.height) { s.y = -10; s.x = Math.random()*canvas.width; }
+    });
+
+    if (gameState === "LAUNCHING") {
+        stationY += 15; planetY += 15;
+        if (stationY > canvas.height + 250) gameState = "GAME";
+    }
+
+    if (gameState === "GAME") {
+        player.x += moveX * 12;
+        player.x = Math.max(40, Math.min(canvas.width-40, player.x));
+        if (isHoldingFire && --fireCooldown <= 0) {
+            playSnd(1500, 'square', 0.06, 0.03, 400);
+            for(let i = 0; i < 12; i++) {
+                let a = (i / 12) * Math.PI * 2;
+                bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 16, vy: Math.sin(a) * 16 });
+            }
+            fireCooldown = 8;
+        }
+        updateCargoStation();
+        if (goalPlanet.active) {
+            goalPlanet.y += 2.5;
+            if (player.y - goalPlanet.y < goalPlanet.radius) {
+                gameState = "VICTORY";
+                runCoins += 8; updateHud();
+                playSnd(300, 'sine', 2.5, 0.5, 1200);
+                document.getElementById("winCoins").innerText = "+" + runCoins + " COINS EARNED";
+                document.getElementById("victoryScreen").style.display = "flex";
+                endRun(true);
+            }
+        }
+    }
+
+    if (player.hp <= 0 && gameState === "GAME") {
+        gameState = "DEAD";
+        playSnd(60, 'sawtooth', 1.5, 0.7, 10);
+        document.getElementById("deadCoins").innerText = "+" + runCoins + " COINS EARNED";
+        document.getElementById("gameOver").style.display = "flex";
+        endRun(false);
+    }
+
+    popups.forEach(p => { p.t--; p.y -= 0.7; });
+    popups = popups.filter(p => p.t > 0);
+
+    bullets.forEach((b, i) => { b.x += b.vx; b.y += b.vy; if(b.y < -100 || b.y > canvas.height+100) bullets.splice(i,1); });
+    enemyBullets.forEach((eb, i) => {
+        eb.x += eb.vx; eb.y += eb.vy;
+        if (Math.hypot(eb.x-player.x, eb.y-player.y) < 28 && gameState === "GAME") {
+            player.hp -= 2; enemyBullets.splice(i,1);
+            document.getElementById("hp").innerText = Math.max(0, player.hp);
+            playSnd(120, 'triangle', 0.15, 0.3, 40);
+        }
+    });
+
+    if (gameState === "GAME" && Math.random() < spawnRate && !goalPlanet.active) {
+        let newX = Math.random() * (canvas.width - 100) + 50;
+        let isSafe = true;
+        enemies.forEach(en => { if(Math.abs(en.x - newX) < 120) isSafe = false; });
+        if(isSafe) enemies.push({x: newX, y: -60, hp: 12, shoot: 0});
+    }
+
+    enemies.forEach((en, i) => {
+        en.y += 3.5; en.shoot++;
+        if (en.shoot > 70 && en.y < player.y - 100) {
+            [-3, 0, 3].forEach(vx => enemyBullets.push({x: en.x, y: en.y, vx: vx, vy: 7}));
+            en.shoot = 0;
+        }
+        bullets.forEach((b, bi) => {
+            if (Math.hypot(en.x-b.x, en.y-b.y) < 45) {
+                en.hp -= 4; bullets.splice(bi,1);
+                if (en.hp <= 0) {
+                    playSnd(180, 'sawtooth', 0.2, 0.2, 60);
+                    enemies.splice(i,1);
+                    killCount++;
+                    if (killCount % 3 === 0) {
+                        runCoins += 3; updateHud(); coinSnd();
+                        addPopup(en.x, en.y, "+3 COINS", "#ffd23f");
+                    }
+                }
+            }
+        });
+        if(en.y > canvas.height + 100) enemies.splice(i,1);
+    });
+}
+
+// ================= DRAW =================
+function drawCargoStation(st) {
+    const x = st.x, y = st.y, tt = frame * 0.03;
+    ctx.save();
+    if (st.state === "dock" && st.t > 8 && st.t < 85) {
+        ctx.fillStyle = "rgba(200,200,200,0.15)";
+        ctx.beginPath(); ctx.moveTo(x - 25, y + 30); ctx.lineTo(x + 25, y + 30); ctx.lineTo(player.x + 22, player.y - 40); ctx.lineTo(player.x - 22, player.y - 40); ctx.fill();
+    }
+    ctx.fillStyle = "#7d7d7d"; ctx.fillRect(x - 100, y - 8, 52, 16); ctx.fillRect(x + 48, y - 8, 52, 16);
+    ctx.strokeStyle = "#555"; ctx.lineWidth = 2;
+    for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(x - 100 + i*13, y - 8); ctx.lineTo(x - 100 + i*13, y + 8); ctx.moveTo(x + 48 + i*13, y - 8); ctx.lineTo(x + 48 + i*13, y + 8); ctx.stroke(); }
+    ctx.fillStyle = "#a6a6a6"; ctx.beginPath(); ctx.ellipse(x, y, 48, 28, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#8a8a8a"; ctx.fillRect(x - 48, y - 4, 96, 8);
+    ctx.fillStyle = "#c4c4c4"; ctx.beginPath(); ctx.arc(x, y - 6, 14, 0, 7); ctx.fill();
+    ctx.fillStyle = "#6b6b6b"; ctx.fillRect(x - 14, y + 22, 28, 14);
+    ctx.fillStyle = (Math.floor(frame / 15) % 2) ? "#ff4040" : "#661111"; ctx.beginPath(); ctx.arc(x - 38, y - 2, 3, 0, 7); ctx.fill();
+    ctx.fillStyle = (Math.floor(frame / 15) % 2) ? "#40ff70" : "#116629"; ctx.beginPath(); ctx.arc(x + 38, y - 2, 3, 0, 7); ctx.fill();
+    [[-1, 0], [1, 2]].forEach(s => {
+        const sx = x + s[0] * 135, sy = y - 30 + Math.sin(tt + s[1]) * 10;
+        ctx.fillStyle = "#909090"; ctx.fillRect(sx - 9, sy - 9, 18, 18);
+        ctx.fillStyle = "#6e6e6e"; ctx.fillRect(sx - 24, sy - 3, 15, 6); ctx.fillRect(sx + 9, sy - 3, 15, 6);
+        ctx.strokeStyle = "#bbb"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx, sy - 9); ctx.lineTo(sx, sy - 18); ctx.stroke();
+        ctx.fillStyle = "#ccc"; ctx.beginPath(); ctx.arc(sx, sy - 19, 3, 0, 7); ctx.fill();
+    });
+    ctx.restore();
+    if (st.state === "dock" && st.t > 25 && st.t < 90) {
+        const p = Math.min(1, (st.t - 25) / 60);
+        const cx = x + (player.x - x) * p, cy = (y + 40) + (player.y - (y + 40)) * p, sc = 1 - 0.55 * p;
+        ctx.fillStyle = "#8c8c8c"; ctx.fillRect(cx - 12*sc, cy - 12*sc, 24*sc, 24*sc);
+        ctx.strokeStyle = "#cfcfcf"; ctx.lineWidth = 2; ctx.strokeRect(cx - 12*sc, cy - 12*sc, 24*sc, 24*sc);
+    }
+}
+
+function draw() {
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#fff"; stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
+
+    if (gameState === "LAUNCHING" || stationY < canvas.height + 150) {
+        ctx.fillStyle = "#333"; ctx.fillRect(0, planetY, canvas.width, 400);
+        ctx.fillStyle = "#111"; ctx.fillRect(canvas.width/2-80, stationY, 160, 40);
+    }
+
+    if (goalPlanet.active) {
+        let g = ctx.createRadialGradient(canvas.width/2, goalPlanet.y, 50, canvas.width/2, goalPlanet.y, goalPlanet.radius);
+        g.addColorStop(0, "#f0f"); g.addColorStop(0.5, "#0ff"); g.addColorStop(1, "#ff0");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(canvas.width/2, goalPlanet.y, goalPlanet.radius, 0, 7); ctx.fill();
+    }
+
+    if (cargoStation) drawCargoStation(cargoStation);
+
+    enemies.forEach(en => {
+        ctx.fillStyle = "#0f0"; ctx.beginPath(); ctx.arc(en.x, en.y-10, 15, 0, 7); ctx.fill();
+        ctx.fillStyle = "#888"; ctx.beginPath(); ctx.ellipse(en.x, en.y, 42, 16, 0, 0, 7); ctx.fill();
+    });
+
+    bullets.forEach(b => { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, 7); ctx.fill(); });
+    enemyBullets.forEach(eb => { ctx.fillStyle = "#f0f"; ctx.beginPath(); ctx.arc(eb.x, eb.y, 8, 0, 7); ctx.fill(); });
+
+    if (gameState === "LAUNCHING" || gameState === "GAME") {
+        ctx.save(); ctx.translate(player.x, player.y);
+        drawRocket(ctx, acct.skin, 35 + Math.random() * 25);
+        ctx.restore();
+    }
+
+    popups.forEach(p => {
+        ctx.save(); ctx.globalAlpha = Math.min(1, p.t / 30); ctx.fillStyle = p.col; ctx.font = "bold 20px 'Arial Black', sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(p.txt, p.x, p.y); ctx.restore();
+    });
+    update(); requestAnimationFrame(draw);
+}
+draw();
+selectLevel(0, true);
+
+// ================= START: guest by default, auto-login if account token exists =================
+if (localStorage.getItem("ailens_token")) {
+    isGuest = false;
+    api("state").then(showMenuAfterAuth).catch((e) => {
+        if (e.message === "Session expired") {
+            localStorage.removeItem("ailens_token");
+            enterGuest();
+        } else {
+            // network problem: token kept, retry
+            setTimeout(() => location.reload(), 3000);
+        }
+    });
+} else {
+    enterGuest();
+}
+</script>
+</body>
+</html>
